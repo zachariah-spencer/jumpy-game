@@ -1,85 +1,118 @@
+class Game
+  attr_gtk
+
+  def initialize args
+    self.args = args
+    state.player = {
+      x: Grid.w / 2 - 16,
+      y: Grid.h / 2 - 16,
+      dx: 0,
+      dy: 0,
+      w: 32,
+      h: 32,
+      path: "sprites/chroma-noir/hero.png",
+      tile_x: 8 * 0,
+      tile_y: 8 * 1,
+      tile_w: 8,
+      tile_h: 8,
+      floating_radius: 20,
+      floating_rpm: 8,
+      floating_theta: 0,
+      render_x: 0,
+      render_y: 0,
+    }
+
+    state.obstacle_speed = 2
+
+    state.walls = []
+
+    state.walls << wall
+  end
+
+  def wall
+    wall_tiles = []
+    gaps_num = Numeric.rand(1..3)
+
+    random_gaps = []
+    gaps_num.times { random_gaps << Numeric.rand(0..19) }
+
+    20.times do |i|
+      next if random_gaps.include? i
+      
+      wall_tiles << {
+        x: 64 * i,
+        y: 40,
+        w: 64,
+        h: 64,
+        path: "sprites/chroma-noir/overworld.png",
+        tile_x: 8 * 0,
+        tile_y: 8 * 24,
+        tile_w: 8,
+        tile_h: 8,
+      }
+    end
+
+    wall_tiles
+  end
+
+  def tick
+    calc
+    render
+  end
+
+  def calc
+    state.walls.flatten.each { |wall| wall.y += state.obstacle_speed }
+
+    # inputs
+    state.player.dx += Numeric.rand(7..10) if inputs.keyboard.key_down.d
+    state.player.dx -= Numeric.rand(7..10) if inputs.keyboard.key_down.a
+    state.player.dy = (Geometry.distance [0, state.player.y], [0, Grid.h / 2 - 16]) * 0.08
+
+    state.player.x += state.player.dx
+    state.player.y += state.player.dy
+
+    state.player.dx *= 0.95
+    state.player.dy *= 0.95
+
+    if state.player.x <= 0
+      state.player.x = 0
+      state.player.dx = 0
+    end
+
+    # horizontal edge of screen collisions
+    if state.player.x >= Grid.w - state.player.w
+      state.player.x = Grid.w - state.player.w
+      state.player.dx = 0
+    end
+
+    # loss con
+    if state.player.y > Grid.h
+      GTK.reset
+    end
+
+    # player circular floating
+    omega = state.player.floating_rpm * 2 * Math::PI / 60.0
+    state.player.floating_theta = (state.player.floating_theta + omega * (1.0/60.0)) % (2*Math::PI)
+    
+    float_x = state.player.floating_radius * Math.cos(state.player.floating_theta)
+    float_y = state.player.floating_radius * Math.sin(state.player.floating_theta)
+    state.player.render_x = (state.player.x + float_x).clamp(0, Grid.w - state.player.w)
+    state.player.render_y = state.player.y + float_y
+  end
+
+  def render
+    outputs.background_color = [ 13, 13, 13 ]
+    outputs.sprites << state.player.merge(
+      x: state.player.render_x,
+      y: state.player.render_y
+    )
+
+    outputs.sprites << state.walls
+  end
+
+end
+
 def tick args
-  args.state.logo_rect ||= { x: 576,
-                             y: 200,
-                             w: 128,
-                             h: 101 }
-
-  args.outputs.labels  << { x: 640,
-                            y: 600,
-                            text: 'Hello World!',
-                            size_px: 30,
-                            anchor_x: 0.5,
-                            anchor_y: 0.5 }
-
-  args.outputs.labels  << { x: 640,
-                            y: 510,
-                            text: "Documentation is located under the ./docs directory. 150+ samples are located under the ./samples directory.",
-                            size_px: 20,
-                            anchor_x: 0.5,
-                            anchor_y: 0.5 }
-
-  args.outputs.labels  << { x: 640,
-                            y: 480,
-                            text: "You can also access these docs online at docs.dragonruby.org.",
-                            size_px: 20,
-                            anchor_x: 0.5,
-                            anchor_y: 0.5 }
-
-  args.outputs.labels  << { x: 640,
-                            y: 400,
-                            text: "The code that powers what you're seeing right now is located at ./mygame/app/main.rb.",
-                            size_px: 20,
-                            anchor_x: 0.5,
-                            anchor_y: 0.5 }
-
-  args.outputs.labels  << { x: 640,
-                            y: 380,
-                            text: "(you can change the code while the app is running and see the updates live)",
-                            size_px: 20,
-                            anchor_x: 0.5,
-                            anchor_y: 0.5 }
-
-  args.outputs.sprites << { x: args.state.logo_rect.x,
-                            y: args.state.logo_rect.y,
-                            w: args.state.logo_rect.w,
-                            h: args.state.logo_rect.h,
-                            path: 'dragonruby.png',
-                            angle: Kernel.tick_count }
-
-  args.outputs.labels  << { x: 640,
-                            y: 180,
-                            text: "(use arrow keys to move the logo around)",
-                            size_px: 20,
-                            anchor_x: 0.5,
-                            anchor_y: 0.5 }
-
-  args.outputs.labels  << { x: 640,
-                            y: 80,
-                            text: 'Join the Discord Server! https://discord.dragonruby.org',
-                            size_px: 30,
-                            anchor_x: 0.5 }
-
-  if args.inputs.keyboard.left
-    args.state.logo_rect.x -= 10
-  elsif args.inputs.keyboard.right
-    args.state.logo_rect.x += 10
-  end
-
-  if args.inputs.keyboard.down
-    args.state.logo_rect.y -= 10
-  elsif args.inputs.keyboard.up
-    args.state.logo_rect.y += 10
-  end
-
-  if args.state.logo_rect.x > 1280
-    args.state.logo_rect.x = 0
-  elsif args.state.logo_rect.x < 0
-    args.state.logo_rect.x = 1280
-  end
-
-  if args.state.logo_rect.y > 720
-    args.state.logo_rect.y = 0
-  elsif args.state.logo_rect.y < 0
-    args.state.logo_rect.y = 720
-  end
+  $game ||= Game.new args
+  $game.tick
 end
