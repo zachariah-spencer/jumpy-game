@@ -1,22 +1,4 @@
-* EXCEPTION:
-* ERROR:
-The method ~each~ was invoked on ~flatten~ within args.state, but ~flatten~ has
-a value of nil. The temporary coersion of this nil value, has reached it's
-invocation limit (you've called this function a lot and should probably
-set a default value for ~flatten~).
-
-Here is the details:
-
-object:
-{:entity_id=>1, :entity_name=>:walls, :entity_keys_by_ref=>{}, :__thrash_count__=>{:each=>13}}
-
-member: [each]
-attribute: [flatten].
-
-Set a default value for this property.
-
-
+* EXCEPTION: comparison of Integer with Array failed
 ** Backtrace:
-*** app/main.rb:41:in calc
-*** app/main.rb:36:in tick
-*** app/main.rb:130:in tick
+*** app/main.rb:38:in tick
+*** app/main.rb:235:in tick
