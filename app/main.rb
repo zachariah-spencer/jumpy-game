@@ -3,29 +3,6 @@ class Game
 
   def initialize args
     self.args = args
-    state.player = {
-      x: Grid.w / 2 - 16,
-      y: Grid.h / 2 - 16,
-      dx: 0,
-      dy: 0,
-      w: 32,
-      h: 32,
-      path: "sprites/chroma-noir/hero.png",
-      tile_x: 8 * 0,
-      tile_y: 8 * 1,
-      tile_w: 8,
-      tile_h: 8,
-      floating_radius: 20,
-      floating_rpm: 8,
-      floating_theta: 0,
-      render_x: 0,
-      render_y: 0,
-    }
-
-    state.obstacle_speed = 2
-
-    state.walls = []
-
     state.walls << wall
   end
 
@@ -66,7 +43,10 @@ class Game
     # inputs
     state.player.dx += Numeric.rand(7..10) if inputs.keyboard.key_down.d
     state.player.dx -= Numeric.rand(7..10) if inputs.keyboard.key_down.a
-    state.player.dy = (Geometry.distance [0, state.player.y], [0, Grid.h / 2 - 16]) * 0.08
+    
+    player_distance_to_center = (Geometry.distance [0, state.player.y], [0, Grid.h / 2 - 16]) * 0.08
+    player_distance_to_center *= -1 if state.player.y >= Grid.h / 2 - 16
+    state.player.dy = player_distance_to_center
 
     state.player.x += state.player.dx
     state.player.y += state.player.dy
@@ -85,9 +65,16 @@ class Game
       state.player.dx = 0
     end
 
+    state.walls.flatten.each do |wall|
+      if wall.intersect_rect? state.player
+        state.player.y = wall.y + wall.h
+        state.player.dy = 0
+      end
+    end
+
     # loss con
     if state.player.y > Grid.h
-      GTK.reset
+      GTK.reset_next_tick
     end
 
     # player circular floating
@@ -112,7 +99,33 @@ class Game
 
 end
 
+def defaults args
+  args.state.player ||= {
+    x: Grid.w / 2 - 16,
+    y: Grid.h / 2 - 16,
+    dx: 0,
+    dy: 0,
+    w: 32,
+    h: 32,
+    path: "sprites/chroma-noir/hero.png",
+    tile_x: 8 * 0,
+    tile_y: 8 * 1,
+    tile_w: 8,
+    tile_h: 8,
+    floating_radius: 20,
+    floating_rpm: 8,
+    floating_theta: 0,
+    render_x: 0,
+    render_y: 0,
+  }
+
+  args.state.obstacle_speed ||= 2
+
+  args.state.walls ||= []
+end
+
 def tick args
+  defaults args
   $game ||= Game.new args
   $game.tick
 end
